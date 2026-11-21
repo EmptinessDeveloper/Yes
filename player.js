@@ -56,7 +56,7 @@
     window.setTimeout(function () {
       revealTransitioning = false;
       document.body.classList.add('reveal-done');
-    }, 1750);
+    }, 1300);
   }
 
   var I18N = {
@@ -121,6 +121,7 @@
 
   initMoscowClock();
   initBackgroundParticles();
+  initCardSpotlight();
   initLangSwitch();
   initVisitorCounter();
 
@@ -1075,6 +1076,23 @@
     }
   }
 
+  function initCardSpotlight() {
+    var finePointer = false;
+    try {
+      finePointer = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    } catch (err) {}
+    if (!finePointer) return;
+
+    var cards = document.querySelectorAll('.now-playing, .project-card');
+    Array.prototype.forEach.call(cards, function (card) {
+      card.addEventListener('pointermove', function (e) {
+        var rect = card.getBoundingClientRect();
+        card.style.setProperty('--mx', (e.clientX - rect.left).toFixed(1) + 'px');
+        card.style.setProperty('--my', (e.clientY - rect.top).toFixed(1) + 'px');
+      }, { passive: true });
+    });
+  }
+
   function initBackgroundParticles() {
     if (!particlesCanvas || !particlesCanvas.getContext) return;
     var ctx = particlesCanvas.getContext('2d');
@@ -1127,18 +1145,23 @@
       };
     }
 
-    function drawFrame() {
+    var lastTs = 0;
+
+    function drawFrame(ts) {
       if (revealTransitioning) {
+        lastTs = ts || 0;
         animId = window.requestAnimationFrame(drawFrame);
         return;
       }
+      var dt = lastTs && ts ? clamp((ts - lastTs) / 16.6667, 0.25, 2.5) : 1;
+      lastTs = ts || 0;
       ctx.clearRect(0, 0, width, height);
       for (var i = 0; i < particles.length; i++) {
         var p = particles[i];
         if (!reducedMotion) {
-          p.x += p.vx;
-          p.y += p.vy;
-          p.phase += 0.018;
+          p.x += p.vx * dt;
+          p.y += p.vy * dt;
+          p.phase += 0.016 * dt;
 
           if (p.y < -10) {
             p.y = height + 10;
@@ -1148,8 +1171,15 @@
           else if (p.x > width + 10) p.x = -10;
         }
 
-        var twinkle = reducedMotion ? 1 : (0.75 + 0.25 * Math.sin(p.phase));
-        var a = clamp(p.alpha * twinkle, 0.06, 0.65);
+        var twinkle = reducedMotion ? 1 : (0.72 + 0.28 * Math.sin(p.phase));
+        var a = clamp(p.alpha * twinkle, 0.05, 0.62);
+
+        if (p.r > 1.75) {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r * 2.6, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(' + p.color + ', ' + (a * 0.16).toFixed(3) + ')';
+          ctx.fill();
+        }
 
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
@@ -1179,6 +1209,7 @@
           animId = 0;
         }
       } else if (!reducedMotion && !animId) {
+        lastTs = 0;
         animId = window.requestAnimationFrame(drawFrame);
       }
     });
