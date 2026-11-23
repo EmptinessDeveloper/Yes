@@ -23,7 +23,6 @@
   var enterBtn = $('enter-btn');
   var soundHint = $('sound-hint');
   var eqEl = $('eq');
-  var nowPlayingEl = document.querySelector('.now-playing');
   var audioEnergy = 0;
   var mskTimeEl = $('msk-time');
   var mskTimeText = $('msk-time-text');
@@ -93,7 +92,7 @@
     en: {
       skip: 'Skip to content',
       unmuteHint: 'unmute',
-      xpinsDesc: 'Pins Telegram chat messages with advanced settings.',
+      xpinsDesc: 'Unlimited local chat pins per folder for ExteraGram and AyuGram.',
       xiosDesc: 'Transforms Telegram appearance into an iOS-inspired style.',
       xassistDesc: 'Smart AI-powered assistant right inside Telegram.',
       xdevelopDesc: 'My channel featuring all projects and their latest updates.',
@@ -163,17 +162,17 @@
   var freqData = null;
   var vizRafId = 0;
   var vizBins = [1, 3, 6, 10];
+  var eqBars = eqEl ? Array.prototype.slice.call(eqEl.querySelectorAll('span')) : [];
 
   function ensureAudioAnalyser() {
     if (audioAnalyser) return audioAnalyser;
-    if (!window.AudioContext || !window.AudioContext.prototype.createMediaElementSource) return null;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
     try {
-      var AC = window.AudioContext || window.webkitAudioContext;
-      if (!AC) return null;
       audioCtx = new AC();
       audioAnalyser = audioCtx.createAnalyser();
       audioAnalyser.fftSize = 64;
-      audioAnalyser.smoothingTimeConstant = 0.8;
+      audioAnalyser.smoothingTimeConstant = 0.78;
       var source = audioCtx.createMediaElementSource(audio);
       source.connect(audioAnalyser);
       audioAnalyser.connect(audioCtx.destination);
@@ -192,53 +191,27 @@
       vizRafId = 0;
     }
     audioEnergy = 0;
-    if (nowPlayingEl) {
-      nowPlayingEl.style.setProperty('--audio-energy', '0');
-    }
-    if (eqEl && eqEl.classList) {
-      eqEl.classList.remove('is-live');
-    }
-    if (eqEl && eqEl.querySelectorAll) {
-      var bars = eqEl.querySelectorAll('span');
-      for (var i = 0; i < bars.length; i++) {
-        if (bars[i].style) {
-          bars[i].style.removeProperty('--eq-height');
-        }
-      }
+    if (eqEl) eqEl.classList.remove('is-live');
+    for (var i = 0; i < eqBars.length; i++) {
+      eqBars[i].style.transform = '';
     }
   }
 
   function stepVisualizer() {
-    if (!audioAnalyser || !freqData || !audioCtx) {
-      vizRafId = 0;
+    if (!audioAnalyser || !freqData || audio.paused || audio.ended) {
+      stopVisualizer();
       return;
     }
-    try {
-      audioAnalyser.getByteFrequencyData(freqData);
-    } catch (err) {
-      vizRafId = 0;
-      return;
-    }
+    audioAnalyser.getByteFrequencyData(freqData);
     var sum = 0;
-    for (var b = 0; b < vizBins.length; b++) {
-      sum += freqData[vizBins[b]] || 0;
+    for (var i = 0; i < eqBars.length; i++) {
+      var val = freqData[vizBins[i] || 1] || 0;
+      var level = clamp(0.18 + (val / 255) * 0.84, 0.18, 1);
+      eqBars[i].style.transform = 'scaleY(' + level.toFixed(3) + ')';
+      sum += val;
     }
-    var avg = sum / vizBins.length / 255;
-    audioEnergy = clamp(avg, 0.18, 1);
-    if (nowPlayingEl && nowPlayingEl.style) {
-      nowPlayingEl.style.setProperty('--audio-energy', audioEnergy.toFixed(3));
-    }
-    if (eqEl && eqEl.querySelectorAll) {
-      var bars = eqEl.querySelectorAll('span');
-      for (var i = 0; i < bars.length; i++) {
-        var bar = bars[i];
-        var share = bars.length > 1 ? (i + 1) / bars.length : 1;
-        var level = clamp(audioEnergy * (0.45 + share * 0.55), 0.12, 1);
-        if (bar.style) {
-          bar.style.setProperty('--eq-height', level.toFixed(3));
-        }
-      }
-    }
+    var target = clamp((sum / (Math.max(1, eqBars.length) * 255)) * 1.1, 0, 1);
+    audioEnergy += (target - audioEnergy) * 0.25;
     vizRafId = window.requestAnimationFrame(stepVisualizer);
   }
 
@@ -1194,15 +1167,27 @@
 
     var cards = document.querySelectorAll('.now-playing, .project-card');
     Array.prototype.forEach.call(cards, function (card) {
+      var isProject = card.classList.contains('project-card');
       card.addEventListener('pointermove', function (e) {
         var rect = card.getBoundingClientRect();
-        var nx = clamp((e.clientX - rect.left) / (rect.width || 1), 0, 1);
-        var ny = clamp((e.clientY - rect.top) / (rect.height || 1), 0, 1);
-        card.style.setProperty('--mx', (e.clientX - rect.left).toFixed(1) + 'px');
-        card.style.setProperty('--my', (e.clientY - rect.top).toFixed(1) + 'px');
-        card.style.setProperty('--ry', ((nx - 0.5) * 14).toFixed(2) + 'deg');
-        card.style.setProperty('--rx', (-(ny - 0.5) * 14).toFixed(2) + 'deg');
+        var x = e.clientX - rect.left;
+        var y = e.clientY - rect.top;
+        card.style.setProperty('--mx', x.toFixed(1) + 'px');
+        card.style.setProperty('--my', y.toFixed(1) + 'px');
+        if (isProject && rect.width > 0 && rect.height > 0) {
+          var nx = clamp(x / rect.width, 0, 1);
+          var ny = clamp(y / rect.height, 0, 1);
+          card.style.setProperty('--ry', ((nx - 0.5) * 8).toFixed(2) + 'deg');
+          card.style.setProperty('--rx', (-(ny - 0.5) * 8).toFixed(2) + 'deg');
+        }
       }, { passive: true });
+
+      if (isProject) {
+        card.addEventListener('pointerleave', function () {
+          card.style.setProperty('--rx', '0deg');
+          card.style.setProperty('--ry', '0deg');
+        });
+      }
     });
   }
 

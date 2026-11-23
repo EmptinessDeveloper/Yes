@@ -52,6 +52,11 @@ body,
   -webkit-touch-callout: none;
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
 ::selection {
   background: rgba(167, 139, 250, 0.28);
   color: var(--violet-100);
@@ -190,12 +195,11 @@ a:hover {
 
 .bg-aurora {
   position: fixed;
-  inset: -25%;
+  inset: 0;
   z-index: 0;
   pointer-events: none;
-  filter: blur(88px);
-  opacity: 0.55;
-  will-change: transform;
+  overflow: hidden;
+  opacity: 0.42;
 }
 
 .bg-aurora span {
@@ -206,25 +210,31 @@ a:hover {
 }
 
 .bg-aurora span:nth-child(1) {
-  inset: 8% 4% 55% 30%;
-  background: radial-gradient(50% 50% at 50% 50%, rgba(124, 58, 237, 0.75) 0%, rgba(124, 58, 237, 0) 100%);
-  animation: aurora-a 19s ease-in-out infinite;
+  top: -18%;
+  left: -14%;
+  width: 68vmax;
+  height: 68vmax;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.34) 0%, rgba(124, 58, 237, 0) 68%);
+  animation: aurora-a 22s ease-in-out infinite alternate;
 }
 
 .bg-aurora span:nth-child(2) {
-  inset: 45% 28% 12% 4%;
-  background: radial-gradient(50% 50% at 50% 50%, rgba(232, 121, 249, 0.6) 0%, rgba(232, 121, 249, 0) 100%);
-  animation: aurora-b 24s ease-in-out infinite;
+  right: -16%;
+  bottom: -20%;
+  width: 64vmax;
+  height: 64vmax;
+  background: radial-gradient(circle, rgba(232, 121, 249, 0.22) 0%, rgba(232, 121, 249, 0) 70%);
+  animation: aurora-b 26s ease-in-out infinite alternate;
 }
 
 @keyframes aurora-a {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(6%, 4%, 0) scale(1.16); }
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(5vw, 4vh, 0) scale(1.08); }
 }
 
 @keyframes aurora-b {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); }
-  50% { transform: translate3d(-7%, -5%, 0) scale(0.92); }
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(-5vw, -4vh, 0) scale(1.08); }
 }
 
 .site-header,
@@ -356,15 +366,14 @@ a:hover {
   -webkit-backdrop-filter: blur(16px) saturate(125%);
   overflow: visible;
   isolation: isolate;
-  --audio-energy: 0;
   transition: border-color 0.3s ease, box-shadow 0.4s ease;
 }
 
 body.is-audio-playing .now-playing {
-  border-color: rgba(196, 176, 253, 0.3);
+  border-color: rgba(196, 176, 253, 0.34);
   box-shadow:
     0 22px 54px rgba(12, 5, 28, 0.72),
-    0 0 calc(28px + 72px * var(--audio-energy)) rgba(124, 58, 237, calc(0.14 + 0.24 * var(--audio-energy))),
+    0 0 46px rgba(124, 58, 237, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
@@ -508,9 +517,7 @@ body.is-audio-playing .eq span:nth-child(4) { animation-name: eq-4; animation-du
 
 body.is-audio-playing .eq.is-live span {
   animation: none !important;
-  transform: scaleY(var(--eq-height, 0.28));
-  transform-origin: bottom;
-  will-change: transform;
+  opacity: 1;
   transition: transform 0.05s linear;
 }
 
@@ -564,16 +571,23 @@ body.is-audio-playing .eq.is-live span {
 .player__sheen {
   position: absolute;
   inset: 0;
-  width: 60%;
   border-radius: inherit;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.player__sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 60%;
   background: linear-gradient(115deg, transparent 20%, rgba(245, 240, 255, 0.08) 50%, transparent 80%);
   transform: translate3d(-130%, 0, 0);
   opacity: 0;
-  pointer-events: none;
   transition: opacity 0.45s ease;
 }
 
-.player.is-playing .player__sheen {
+.player.is-playing .player__sheen::after {
   opacity: 1;
   animation: sheen 7.5s linear infinite;
 }
@@ -1314,10 +1328,6 @@ body.is-audio-playing .eq.is-live span {
   transition: opacity 0.28s ease;
 }
 
-.project-list {
-  perspective: 900px;
-}
-
 .project-card {
   --rx: 0deg;
   --ry: 0deg;
@@ -1326,6 +1336,7 @@ body.is-audio-playing .eq.is-live span {
 @media (hover: hover) and (pointer: fine) {
   .project-card:hover {
     transform:
+      perspective(900px)
       rotateX(var(--rx))
       rotateY(var(--ry))
       translateY(-3px);
@@ -1334,6 +1345,14 @@ body.is-audio-playing .eq.is-live span {
       0 20px 48px rgba(46, 16, 101, 0.36),
       0 0 0 1px rgba(216, 200, 255, 0.08),
       inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+}
+
+@media (max-width: 600px) {
+  .project-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: linear-gradient(155deg, rgba(139, 92, 246, 0.13) 0%, rgba(14, 9, 27, 0.92) 52%, rgba(240, 171, 252, 0.06) 100%);
   }
 }
 
@@ -1518,12 +1537,10 @@ body.is-audio-playing .eq.is-live span {
   padding: 13px 16px;
   border: 1px solid var(--card-border);
   border-radius: 14px;
-  background: var(--card-bg);
+  background: linear-gradient(155deg, rgba(139, 92, 246, 0.12) 0%, rgba(15, 9, 28, 0.88) 100%);
   box-shadow:
     0 12px 30px rgba(4, 2, 12, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px) saturate(115%);
-  -webkit-backdrop-filter: blur(12px) saturate(115%);
   transition:
     border-color 0.26s ease,
     box-shadow 0.26s ease,
