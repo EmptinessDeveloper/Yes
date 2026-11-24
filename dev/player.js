@@ -65,7 +65,7 @@
     ru: {
       skip: 'Перейти к содержимому',
       unmuteHint: 'включить звук',
-      xpinsDesc: 'Закрепляет сообщения чатов Telegram с расширенными настройками.',
+      xpinsDesc: 'Снимает лимит на закрепление чатов в папках Telegram с удобным редактором порядка.',
       xiosDesc: 'Меняет внешний вид телеграм под iOS стиль.',
       xassistDesc: 'Умный помощник на базе ИИ прямо в телеграм.',
       xdevelopDesc: 'Мой канал со всеми проектами и последними обновлениями для них.',
@@ -92,7 +92,7 @@
     en: {
       skip: 'Skip to content',
       unmuteHint: 'unmute',
-      xpinsDesc: 'Unlimited local chat pins per folder for ExteraGram and AyuGram.',
+      xpinsDesc: 'Removes the pinned chat limit per Telegram folder with a native order editor.',
       xiosDesc: 'Transforms Telegram appearance into an iOS-inspired style.',
       xassistDesc: 'Smart AI-powered assistant right inside Telegram.',
       xdevelopDesc: 'My channel featuring all projects and their latest updates.',
